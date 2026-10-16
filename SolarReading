@@ -1,0 +1,126 @@
+import java.util.*;
+import java.io.*;
+import java.nio.file.*;
+
+class SolarReading {
+    String date;
+    double powerKw, hours, energy;
+
+    SolarReading(String date, double powerKw, double hours) {
+        this.date = date;
+        this.powerKw = powerKw;
+        this.hours = hours;
+        this.energy = powerKw * hours;
+    }
+}
+
+class SolarMonitor {
+    ArrayList<SolarReading> readings = new ArrayList<>();
+    double threshold = 2.0;
+
+    void addReading(SolarReading r) {
+        readings.add(r);
+    }
+
+    double calculateTotal() {
+        double total = 0;
+        for (SolarReading r : readings) {
+            total += r.energy;
+        }
+        return total;
+    }
+
+    double calculateAverage() {
+        if (readings.isEmpty()) {
+            return 0;
+        }
+        return calculateTotal() / readings.size();
+    }
+
+    void displayReport() {
+        int alerts = 0;
+
+        System.out.println("\n===== SOLAR ENERGY REPORT =====");
+        System.out.printf("%-15s %-12s %-12s %-12s%n",
+                "Date", "Power(kW)", "Hours", "Energy(kWh)");
+
+        for (SolarReading r : readings) {
+            System.out.printf("%-15s %-12.2f %-12.2f %-12.2f%n",
+                    r.date, r.powerKw, r.hours, r.energy);
+
+            if (r.energy < threshold) {
+                System.out.println("Low generation alert: " + r.date);
+                alerts++;
+            }
+        }
+
+        System.out.printf("Total Energy: %.2f kWh%n", calculateTotal());
+        System.out.printf("Average Energy: %.2f kWh%n", calculateAverage());
+        System.out.println("Alert Count: " + alerts);
+    }
+
+    void saveToFile() {
+        try {
+            ArrayList<String> lines = new ArrayList<>();
+            lines.add("Date,Power(kW),Hours,Energy(kWh)");
+
+            for (SolarReading r : readings) {
+                lines.add(r.date + "," + r.powerKw + ","
+                        + r.hours + "," + r.energy);
+            }
+
+            Files.write(Paths.get("readings.csv"), lines);
+            System.out.println("Records saved to readings.csv");
+
+        } catch (IOException e) {
+            System.out.println("Error saving file.");
+        }
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        SolarMonitor monitor = new SolarMonitor();
+
+        System.out.print("Enter number of days: ");
+        int n = sc.nextInt();
+        sc.nextLine();
+
+        if (n <= 0) {
+            System.out.println("Enter a positive number of days.");
+            sc.close();
+            return;
+        }
+
+        for (int i = 1; i <= n; i++) {
+            System.out.println("\nDay " + i);
+
+            System.out.print("Enter date: ");
+            String date = sc.nextLine();
+
+            System.out.print("Enter power in kW: ");
+            double power = sc.nextDouble();
+
+            System.out.print("Enter operating hours: ");
+            double hours = sc.nextDouble();
+            sc.nextLine();
+
+            if (power < 0 || hours < 0) {
+                System.out.println("Values cannot be negative. Try again.");
+                i--;
+                continue;
+            }
+
+            SolarReading r = new SolarReading(date, power, hours);
+            monitor.addReading(r);
+
+            System.out.printf("Energy generated: %.2f kWh%n", r.energy);
+        }
+
+        monitor.displayReport();
+        monitor.saveToFile();
+
+        sc.close();
+    }
+}
